@@ -37,9 +37,13 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   const { parser } = options;
   const rl = options.rl || createInterface(process.stdin, process.stdout);
   let isIgnoring = false;
+  let didSetError = false;
   const cli: CLI<T> = {} as CLI<T>;
   const listeners = new Map<Listener, Listener[]>();
-  const errorListeners: ErrorListener[] = [];
+  const errorHandler = (error: unknown) => {
+    throw error;
+  };
+  const errorListeners: ErrorListener[] = [errorHandler];
   const immediate = createImmediate();
 
   const ignore: CLI<T>['ignore'] = (value = true) => {
@@ -60,11 +64,17 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     rl.close();
     rl.removeAllListeners();
     listeners.clear();
-    errorListeners.splice(0);
+    didSetError = false;
+    errorListeners.splice(0, errorListeners.length, errorHandler);
   };
 
   const on: CLI<T>['on'] = (event, listener: Listener) => {
     if (event === 'error') {
+      // remove default error handler
+      if (!didSetError) {
+        didSetError = true;
+        errorListeners.pop();
+      }
       errorListeners.push(listener);
       return cli;
     }
@@ -110,6 +120,11 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
       const index = errorListeners.indexOf(listener);
       if (index > -1) {
         errorListeners.splice(index, 1);
+      }
+      // set default error handler
+      if (errorListeners.length === 0) {
+        didSetError = false;
+        errorListeners.push(errorHandler);
       }
       return cli;
     }
