@@ -1,4 +1,5 @@
 import { createInterface, Interface } from 'readline';
+import { createHistory } from './history';
 import { createImmediate } from './immediate';
 
 export type DataListener<T = string> = (data: T) => void | Promise<void>;
@@ -43,6 +44,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   const dataListeners: DataListener<T>[] = [];
   const errorListeners: ErrorListener[] = [errorHandler];
   const immediate = createImmediate();
+  const history = createHistory((rl as any).history);
 
   const resume = () => {
     if (!closed) {
@@ -56,10 +58,22 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     }
   };
 
+  // lock or unlock history
+  const ignore: CLI<T>['ignore'] = (value = true) => {
+    isIgnoring = value;
+    if (isIgnoring) {
+      history.lock();
+      resume();
+    } else {
+      history.unlock();
+    }
+    return cli;
+  };
+
   const handleInput = async (isData: boolean, input: string | T) => {
     immediate.clear();
     if (isIgnoring) {
-      // TODO: clear new history items
+      history.restore();
       return;
     }
     rl.pause();
@@ -70,7 +84,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     } catch (error: unknown) {
       errorListeners.forEach(listener => listener(error));
     } finally {
-      isIgnoring = false;
+      ignore(false);
       resume();
       immediate.set(() => prompt());
     }
@@ -86,29 +100,11 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     return cli;
   };
 
-  const ignore: CLI<T>['ignore'] = (value = true) => {
-    isIgnoring = value;
-    if (value) {
-      resume();
-    }
-    return cli;
-  };
-
   const start: CLI<T>['start'] = (...args: any[]) => {
     if (started) {
       return cli;
     }
     started = true;
-    // add listeners
-    rl.on('line', input => handleInput(false, input));
-    rl.on('close', () => {
-      closed = true;
-      isIgnoring = false;
-      didSetError = false;
-      rl.removeAllListeners();
-      dataListeners.splice(0);
-      errorListeners.splice(0, errorListeners.length, errorHandler);
-    });
     ignore(false);
     if (args.length > 0) {
       handleInput(args[0], args[1]);
@@ -142,6 +138,19 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     }
     return cli;
   };
+
+  // add listeners
+  rl.on('history', value => history.set(value));
+  rl.on('line', input => handleInput(false, input));
+  rl.on('close', () => {
+    closed = true;
+    isIgnoring = false;
+    didSetError = false;
+    rl.removeAllListeners();
+    history.clear();
+    dataListeners.splice(0);
+    errorListeners.splice(0, errorListeners.length, errorHandler);
+  });
 
   Object.defineProperties(cli, {
     rl: prop(rl),
