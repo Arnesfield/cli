@@ -70,33 +70,42 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     return cli;
   };
 
-  const handleInput = async (isData: boolean, input: string | T) => {
+  const handleInput = (
+    isData: boolean,
+    input: string | T,
+    throwStartError = false
+  ) => {
+    if (throwStartError && !started) {
+      throw new Error('Input not accepted without calling `start()`');
+    }
     immediate.clear();
     if (isIgnoring) {
       history.restore();
       return;
     }
     rl.pause();
-    try {
-      const value =
-        !isData && parser ? await parser(input as string) : (input as T);
-      await Promise.all(dataListeners.map(listener => listener(value)));
-    } catch (error: unknown) {
-      errorListeners.forEach(listener => listener(error));
-    } finally {
-      ignore(false);
-      resume();
-      immediate.set(() => prompt());
-    }
+    (async () => {
+      try {
+        const value =
+          !isData && parser ? await parser(input as string) : (input as T);
+        await Promise.all(dataListeners.map(listener => listener(value)));
+      } catch (error: unknown) {
+        errorListeners.forEach(listener => listener(error));
+      } finally {
+        ignore(false);
+        resume();
+        immediate.set(() => prompt());
+      }
+    })();
   };
 
   const data: CLI<T>['data'] = (data: T) => {
-    handleInput(true, data);
+    handleInput(true, data, true);
     return cli;
   };
 
   const input: CLI<T>['input'] = (input: string) => {
-    handleInput(false, input);
+    handleInput(false, input, true);
     return cli;
   };
 
