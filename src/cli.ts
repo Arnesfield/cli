@@ -37,12 +37,25 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   const { parser } = options;
   const rl = options.rl || createInterface(process.stdin, process.stdout);
   let started = false;
+  let closed = false;
   let isIgnoring = false;
   let didSetError = false;
   const cli: CLI<T> = {} as CLI<T>;
   const dataListeners: DataListener<T>[] = [];
   const errorListeners: ErrorListener[] = [errorHandler];
   const immediate = createImmediate();
+
+  const resume = () => {
+    if (!closed) {
+      rl.resume();
+    }
+  };
+
+  const prompt = () => {
+    if (!closed) {
+      rl.prompt(true);
+    }
+  };
 
   const handleInput = async (isData: boolean, input: string | T) => {
     immediate.clear();
@@ -59,8 +72,8 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
       errorListeners.forEach(listener => listener(error));
     } finally {
       isIgnoring = false;
-      rl.resume();
-      immediate.set(() => rl.prompt(true));
+      resume();
+      immediate.set(() => prompt());
     }
   };
 
@@ -77,7 +90,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   const ignore: CLI<T>['ignore'] = (value = true) => {
     isIgnoring = value;
     if (value) {
-      rl.resume();
+      resume();
     }
     return cli;
   };
@@ -87,13 +100,16 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
       return cli;
     }
     started = true;
-    // add listener
+    // add listeners
     rl.on('line', input => handleInput(false, input));
+    rl.on('close', () => {
+      closed = true;
+    });
     ignore(false);
     if (args.length > 0) {
       handleInput(args[0], args[1]);
     } else {
-      rl.prompt(true);
+      prompt();
     }
     return cli;
   };
