@@ -2,27 +2,100 @@ import { createInterface, Interface } from 'readline';
 import { createHistory } from './history';
 import { createImmediate } from './immediate';
 
+/**
+ * Data listener.
+ * @param data The data.
+ */
 export type DataListener<T = string> = (data: T) => void | Promise<void>;
 
+/**
+ * Error listener.
+ * @param error The error.
+ */
 export type ErrorListener = (error: unknown) => void;
 
+/** The CLI. */
 export interface CLI<T = string> {
+  /** The `readline` interface. */
   rl: Interface;
+  /**
+   * Starts the CLI.
+   * @returns The CLI.
+   */
   start(): this;
-  start(isData: true, data: T): this;
-  start(isData: false, input: string): this;
+  /**
+   * Starts the CLI.
+   * @param isParsed Determines if the second argument should be parsed.
+   * @param data The parsed input.
+   * @returns The CLI.
+   */
+  start(isParsed: true, data: T): this;
+  /**
+   * Starts the CLI.
+   * @param isParsed Determines if the second argument should be parsed.
+   * @param input The raw input.
+   * @returns The CLI.
+   */
+  start(isParsed: false, input: string): this;
+  /**
+   * Accepts data and emits the data to the listeners.
+   * @param data The parsed input.
+   * @returns The CLI.
+   */
   data(data: T): this;
+  /**
+   * Accepts raw input to parse and emits the data to the listeners.
+   * @param input The raw input.
+   * @returns The CLI.
+   */
   input(input: string): this;
+  /**
+   * Calls `rl.resume()`, ignores incoming `line` event data, and
+   * removes ignored lines from `rl`'s `history`. Will automatically
+   * unignore after a `data` event is emitted and resolved.
+   * @param [ignore=true] Determines if incoming `line` events should be ignored.
+   * @returns The CLI.
+   */
   ignore(ignore?: boolean): this;
+  /**
+   * Adds data listener.
+   * @param event The `data` event.
+   * @param listener The data listener to add.
+   * @returns The CLI.
+   */
   on(event: 'data', listener: DataListener<T>): this;
+  /**
+   * Adds error listener.
+   * @param event The `error` event.
+   * @param listener The error listener to add.
+   * @returns The CLI.
+   */
   on(event: 'error', listener: ErrorListener): this;
+  /**
+   * Removes data listener.
+   * @param event The `data` event.
+   * @param listener The data listener to remove.
+   * @returns The CLI.
+   */
   off(event: 'data', listener: DataListener<T>): this;
+  /**
+   * Removes error listener.
+   * @param event The `error` event.
+   * @param listener The error listener to remove.
+   * @returns The CLI.
+   */
   off(event: 'error', listener: ErrorListener): this;
 }
 
+/** The CLI options. */
 export interface CLIOptions<T> {
+  /** The `readline` interface to use. */
   rl?: Interface;
-  parser?: (input: string) => T | Promise<T>;
+  /**
+   * Custom parser for parsing raw input.
+   * @param input The raw input.
+   */
+  parser?(input: string): T | Promise<T>;
 }
 
 function createProperties(obj: Record<string, any>): PropertyDescriptorMap {
@@ -42,6 +115,11 @@ function errorHandler(error: unknown) {
   throw error;
 }
 
+/**
+ * Creates a CLI.
+ * @param options The CLI options.
+ * @returns The CLI.
+ */
 export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   const { parser } = options;
   const rl = options.rl || createInterface(process.stdin, process.stdout);
@@ -80,7 +158,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   };
 
   const handleInput = (
-    isData: boolean,
+    isParsed: boolean,
     input: string | T,
     throwStartError = false
   ) => {
@@ -96,7 +174,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     (async () => {
       try {
         const value =
-          !isData && parser ? await parser(input as string) : (input as T);
+          !isParsed && parser ? await parser(input as string) : (input as T);
         await Promise.all(dataListeners.map(listener => listener(value)));
       } catch (error: unknown) {
         errorListeners.forEach(listener => listener(error));
@@ -108,12 +186,12 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     })();
   };
 
-  const data: CLI<T>['data'] = (data: T) => {
+  const data: CLI<T>['data'] = data => {
     handleInput(true, data, true);
     return cli;
   };
 
-  const input: CLI<T>['input'] = (input: string) => {
+  const input: CLI<T>['input'] = input => {
     handleInput(false, input, true);
     return cli;
   };

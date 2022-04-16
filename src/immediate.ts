@@ -1,6 +1,6 @@
 export interface Immediate {
-  set: (callback: () => void) => void;
-  clear: () => void;
+  set(callback: () => void): void;
+  clear(): void;
 }
 
 export function createImmediate(): Immediate {
