@@ -10,7 +10,6 @@ export interface CLI<T = string> {
   start(): this;
   start(isData: true, data: T): this;
   start(isData: false, input: string): this;
-  close(): void;
   data(data: T): this;
   input(input: string): this;
   ignore(ignore?: boolean): this;
@@ -104,6 +103,11 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     rl.on('line', input => handleInput(false, input));
     rl.on('close', () => {
       closed = true;
+      isIgnoring = false;
+      didSetError = false;
+      rl.removeAllListeners();
+      dataListeners.splice(0);
+      errorListeners.splice(0, errorListeners.length, errorHandler);
     });
     ignore(false);
     if (args.length > 0) {
@@ -112,15 +116,6 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
       prompt();
     }
     return cli;
-  };
-
-  const close: CLI<T>['close'] = () => {
-    rl.close();
-    rl.removeAllListeners();
-    isIgnoring = false;
-    didSetError = false;
-    dataListeners.splice(0);
-    errorListeners.splice(0, errorListeners.length, errorHandler);
   };
 
   const on: CLI<T>['on'] = (event, listener) => {
@@ -151,7 +146,6 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   Object.defineProperties(cli, {
     rl: prop(rl),
     start: prop(start),
-    close: prop(close),
     data: prop(data),
     input: prop(input),
     ignore: prop(ignore),
