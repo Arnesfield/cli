@@ -25,8 +25,17 @@ export interface CLIOptions<T> {
   parser?: (input: string) => T | Promise<T>;
 }
 
-function prop(value: any): PropertyDescriptor {
-  return { value, writable: false, enumerable: true, configurable: false };
+function createProperties(obj: Record<string, any>): PropertyDescriptorMap {
+  const map: PropertyDescriptorMap = {};
+  for (const key in obj) {
+    map[key] = {
+      value: obj[key],
+      writable: false,
+      enumerable: true,
+      configurable: false
+    };
+  }
+  return map;
 }
 
 function errorHandler(error: unknown) {
@@ -161,16 +170,10 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     errorListeners.splice(0, errorListeners.length, errorHandler);
   });
 
-  Object.defineProperties(cli, {
-    rl: prop(rl),
-    start: prop(start),
-    data: prop(data),
-    input: prop(input),
-    ignore: prop(ignore),
-    on: prop(on),
-    off: prop(off)
-  });
-
+  Object.defineProperties(
+    cli,
+    createProperties({ rl, start, data, input, ignore, on, off })
+  );
   return cli.ignore();
 }
 
