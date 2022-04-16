@@ -28,13 +28,8 @@ const cli = createCLI()
 2. Create CLI with parser.
 
    ```javascript
-   const cli = createCLI({
-     parser: input => input.trim().split(' ')
-   });
-   cli.on('data', (data, input) => {
-     console.log('input: %o', input);
-     console.log('data:', data);
-   });
+   const cli = createCLI({ parser: input => input.trim().split(' ') });
+   cli.on('data', data => console.log('data:', data));
    cli.rl.setPrompt('$ ');
    cli.start();
    ```
@@ -43,6 +38,5 @@ const cli = createCLI()
 
    ```sh
    $   Hello World!
-   input: '  Hello World!  '
    data: [ 'Hello', 'World!' ]
    ```
