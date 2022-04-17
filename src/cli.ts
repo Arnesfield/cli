@@ -17,7 +17,7 @@ export type ErrorListener = (error: unknown) => void;
 /** The CLI. */
 export interface CLI<T = string> {
   /** The `readline` interface. */
-  rl: Interface;
+  readonly rl: Interface;
   /**
    * Starts the CLI.
    * @returns The CLI.
@@ -49,6 +49,11 @@ export interface CLI<T = string> {
    * @returns The CLI.
    */
   input(input: string): this;
+  /**
+   * Calls `rl.prompt(true)` if not closed.
+   * @returns The CLI.
+   */
+  prompt(): this;
   /**
    * Calls `rl.resume()`, ignores incoming `line` event data, and
    * removes ignored lines from `rl`'s `history`. Will automatically
@@ -139,10 +144,11 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     }
   };
 
-  const prompt = () => {
+  const prompt: CLI<T>['prompt'] = () => {
     if (!closed) {
       rl.prompt(true);
     }
+    return cli;
   };
 
   // lock or unlock history
@@ -250,7 +256,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
 
   Object.defineProperties(
     cli,
-    createProperties({ rl, start, data, input, ignore, on, off })
+    createProperties({ rl, start, data, input, prompt, ignore, on, off })
   );
   return cli.ignore();
 }
