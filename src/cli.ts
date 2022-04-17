@@ -25,18 +25,18 @@ export interface CLI<T = string> {
   start(): this;
   /**
    * Starts the CLI.
-   * @param isParsed Determines if the second argument should be parsed.
    * @param data The parsed input.
+   * @param parse Determines if the input should be parsed.
    * @returns The CLI.
    */
-  start(isParsed: true, data: T): this;
+  start(data: T, parse?: false): this;
   /**
    * Starts the CLI.
-   * @param isParsed Determines if the second argument should be parsed.
    * @param input The raw input.
+   * @param parse Determines if the input should be parsed.
    * @returns The CLI.
    */
-  start(isParsed: false, input: string): this;
+  start(input: string, parse: true): this;
   /**
    * Accepts data and emits the data to the listeners.
    * @param data The parsed input.
@@ -164,8 +164,8 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   };
 
   const handleInput = (
-    isParsed: boolean,
     input: string | T,
+    parse: boolean,
     throwStartError = false
   ) => {
     if (throwStartError && !started) {
@@ -180,7 +180,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
     (async () => {
       try {
         const value =
-          !isParsed && parser ? await parser(input as string) : (input as T);
+          parse && parser ? await parser(input as string) : (input as T);
         await Promise.all(dataListeners.map(listener => listener(value)));
       } catch (error: unknown) {
         errorListeners.forEach(listener => listener(error));
@@ -193,12 +193,12 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
   };
 
   const data: CLI<T>['data'] = data => {
-    handleInput(true, data, true);
+    handleInput(data, false, true);
     return cli;
   };
 
   const input: CLI<T>['input'] = input => {
-    handleInput(false, input, true);
+    handleInput(input, true, true);
     return cli;
   };
 
@@ -243,7 +243,7 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
 
   // add listeners
   rl.on('history', value => history.set(value));
-  rl.on('line', input => handleInput(false, input));
+  rl.on('line', input => handleInput(input, true));
   rl.on('close', () => {
     closed = true;
     isIgnoring = false;
