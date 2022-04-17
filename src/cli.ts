@@ -57,7 +57,7 @@ export interface CLI<T = string> {
   /**
    * Calls `rl.resume()`, ignores incoming `line` event data, and
    * removes ignored lines from `rl`'s `history`. Will automatically
-   * unignore after a `data` event is emitted and resolved.
+   * unignore after `data` event listeners are emitted and resolved.
    * @param [ignore=true] Determines if incoming `line` events should be ignored.
    * @returns The CLI.
    */
@@ -177,19 +177,29 @@ export function createCLI<T = string>(options: CLIOptions<T> = {}): CLI<T> {
       return;
     }
     rl.pause();
-    (async () => {
+    const handleData = async () => {
+      let parsed: T;
       try {
-        const value =
-          parse && parser ? await parser(input as string) : (input as T);
-        await Promise.all(dataListeners.map(listener => listener(value)));
+        parsed = parse && parser ? await parser(input as string) : (input as T);
       } catch (error: unknown) {
         errorListeners.forEach(listener => listener(error));
-      } finally {
-        ignore(false);
-        resume();
-        immediate.set(() => prompt());
+        return;
       }
-    })();
+      // handle errors for each listener
+      const promises = dataListeners.map(async listener => {
+        try {
+          await listener(parsed);
+        } catch (error: unknown) {
+          errorListeners.forEach(listener => listener(error));
+        }
+      });
+      await Promise.all(promises);
+    };
+    handleData().finally(() => {
+      ignore(false);
+      resume();
+      immediate.set(() => prompt());
+    });
   };
 
   const data: CLI<T>['data'] = data => {
