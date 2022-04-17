@@ -1,7 +1,7 @@
 {
   "name": "@arnesfield/cli",
   "version": "0.0.1",
-  "description": "Simple CLI.",
+  "description": "Simple interface for the command line.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
