@@ -2,26 +2,37 @@
   "name": "@arnesfield/cli",
   "version": "0.0.1",
   "description": "Simple interface for the command line.",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
-  "scripts": {
-    "start": "npm run build -- -w",
-    "build": "tsc",
-    "prebuild": "rimraf lib",
-    "lint": "eslint . --ext .js,.ts",
-    "lint:fix": "npm run lint -- --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "keywords": [
+    "cli",
+    "command-line",
+    "input",
+    "interface",
+    "readline",
+    "terminal"
+  ],
+  "homepage": "https://github.com/Arnesfield/cli#readme",
+  "bugs": {
+    "url": "https://github.com/Arnesfield/cli/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Arnesfield/cli.git"
   },
-  "author": "Jefferson Rylee <rylee.jeff385@gmail.com>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/Arnesfield/cli/issues"
+  "author": "Jefferson Rylee <rylee.jeff385@gmail.com>",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "prebuild": "rimraf lib",
+    "build": "tsc",
+    "lint": "eslint . --ext .js,.ts",
+    "lint:fix": "npm run lint -- --fix",
+    "start": "npm run build -- -w",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "homepage": "https://github.com/Arnesfield/cli#readme",
   "devDependencies": {
     "@types/node": "^17.0.24",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
@@ -32,5 +43,8 @@
   },
   "peerDependencies": {
     "@types/node": "*"
+  },
+  "engines": {
+    "node": ">=0.3.4"
   }
 }
