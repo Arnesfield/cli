@@ -5,9 +5,17 @@ Simple interface for the command line.
 Provides a simple command-line interface using the Node.js `readline` module.
 
 ```javascript
-const cli = createCLI()
-  .on('data', data => console.log('Hello %s!', data))
-  .start();
+const { createCLI } = require('@arnesfield/cli');
+
+const cli = createCLI();
+cli.on('data', data => console.log('Hello %s!', data));
+cli.start();
+```
+
+## Installation
+
+```sh
+npm install @arnesfield/cli
 ```
 
 ## Usage
@@ -27,7 +35,7 @@ cli.start();
 
 Output:
 
-```sh
+```shell
 > World
 Hello World!
 ```
@@ -73,7 +81,7 @@ cli.start();
 
 Output:
 
-```sh
+```shell
 > Hello World!
 Array: [ 'Hello', 'World!' ]
 ```
@@ -115,7 +123,7 @@ interface CLI<T = string> {
 }
 ```
 
-#### Emit `data` events
+### Emit `data` events
 
 You can emit `data` events through these methods:
 
@@ -126,7 +134,7 @@ cli.start(input, true); // accepts input to parse before starting
 cli.start(data); // accepts parsed input before starting
 ```
 
-#### Using `cli.ignore()`
+### Using `cli.ignore()`
 
 The `cli.ignore()` method does the following:
 
@@ -151,7 +159,7 @@ cli.start();
 
 After entering `Hello World!`, input `foo`, `bar`, `baz` while the listener is not yet resolved. Output:
 
-```sh
+```shell
 > Hello World!
 Processing "Hello World!"
 foo
